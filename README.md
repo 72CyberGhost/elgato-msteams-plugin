@@ -29,19 +29,31 @@ Stream Deck plugin for macOS that controls Microsoft Teams via the Accessibility
 ## Project structure
 
 ```
-com.panda.msteams.sdPlugin/
-├── manifest.json       # Plugin and action definitions
-├── plugin.py           # Entry point: Stream Deck WebSocket event loop
-├── accessibility.py    # Teams state reading and control via macOS AX API
-├── launch.sh           # Launcher script invoked by Stream Deck
-├── requirements.txt    # Python dependencies
-└── images/
-    ├── pluginIcon.png
-    ├── unmuted.png / mute.png
-    ├── cam_on.png / cam_off.png
-    ├── hand_down.png / hand_raised.png
-    ├── leave.png
-    └── idle_*.png      # Greyscale variants shown when no meeting is active
+elgato-msteams-plugin/
+├── README.md
+├── deploy.sh               # First install: copy plugin, create venv, install deps
+├── update.sh               # Sync source files only (preserves venv)
+├── uninstall.sh            # Remove the plugin
+└── com.panda.msteams.sdPlugin/
+    ├── manifest.json       # Plugin and action definitions
+    ├── plugin.py           # Entry point: Stream Deck WebSocket event loop
+    ├── accessibility.py    # Teams state reading and control via macOS AX API
+    ├── teams_mute_mvp.py   # CLI debug tool: inspect AX tree, dry-run mute
+    ├── launch.sh           # Launcher script invoked by Stream Deck
+    ├── requirements.txt    # Python dependencies
+    └── images/
+        ├── pluginIcon.png
+        ├── unmuted.png         # Mic on
+        ├── mute.png            # Mic off
+        ├── cam_on.png          # Camera on
+        ├── cam_off.png         # Camera off
+        ├── hand_down.png       # Hand lowered
+        ├── hand_raised.png     # Hand raised
+        ├── leave.png           # Leave meeting
+        ├── idle_mic.png        # Greyscale variant — no active meeting
+        ├── idle_cam.png
+        ├── idle_hand.png
+        └── idle_leave.png
 ```
 
 ## Installation
