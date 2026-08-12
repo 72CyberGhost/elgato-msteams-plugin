@@ -11,9 +11,9 @@ if [[ ! -d "$DEST" ]]; then
     exit 0
 fi
 
-if pgrep -x "Stream Deck" > /dev/null 2>&1; then
+if pgrep -f "Elgato Stream Deck" > /dev/null 2>&1; then
     echo "→ Stopping Stream Deck..."
-    osascript -e 'quit app "Stream Deck"'
+    osascript -e 'quit app "Elgato Stream Deck"' 2>/dev/null || true
     sleep 2
 fi
 
@@ -21,6 +21,6 @@ echo "→ Removing $DEST..."
 rm -rf "$DEST"
 
 echo "→ Starting Stream Deck..."
-open -a "Stream Deck"
+open -a "Elgato Stream Deck"
 
 echo "✓ Plugin removed."

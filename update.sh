@@ -14,9 +14,9 @@ if [[ ! -d "$DEST" ]]; then
 fi
 
 # Stop Stream Deck
-if pgrep -x "Stream Deck" > /dev/null 2>&1; then
+if pgrep -f "Elgato Stream Deck" > /dev/null 2>&1; then
     echo "→ Stopping Stream Deck..."
-    osascript -e 'quit app "Stream Deck"'
+    osascript -e 'quit app "Elgato Stream Deck"' 2>/dev/null || true
     sleep 2
 fi
 
@@ -31,6 +31,6 @@ rsync -a \
 chmod +x "$DEST/launch.sh"
 
 echo "→ Starting Stream Deck..."
-open -a "Stream Deck"
+open -a "Elgato Stream Deck"
 
 echo "✓ Update complete."
