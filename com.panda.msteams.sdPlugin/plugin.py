@@ -25,7 +25,7 @@ IDLE_IMAGE = {
     ACTION_LEAVE:  "idle_leave.png",
 }
 
-POLL_INTERVAL = 3.0
+POLL_INTERVAL = 2.0
 
 
 class PluginState:
@@ -55,15 +55,17 @@ def show_alert(ws: websocket.WebSocket, context: str) -> None:
 
 
 def _image_for(action: str, state: PluginState) -> str:
-    if action == ACTION_MUTE:
-        return "mute.png" if state.mic_muted else "unmuted.png"
-    if action == ACTION_CAMERA:
-        return "cam_off.png" if state.cam_off else "cam_on.png"
-    if action == ACTION_HAND:
-        return "hand_raised.png" if state.hand_raised else "hand_down.png"
-    if action == ACTION_LEAVE:
-        return "leave.png"
-    return "idle_mic.png"
+    match action:
+        case _ if action == ACTION_MUTE:
+            return "mute.png" if state.mic_muted else "unmuted.png"
+        case _ if action == ACTION_CAMERA:
+            return "cam_off.png" if state.cam_off else "cam_on.png"
+        case _ if action == ACTION_HAND:
+            return "hand_raised.png" if state.hand_raised else "hand_down.png"
+        case _ if action == ACTION_LEAVE:
+            return "leave.png"
+        case _:
+            return "idle_mic.png"
 
 
 def _sync_camera(ws: websocket.WebSocket, context: str, state: PluginState) -> None:
@@ -144,31 +146,32 @@ def handle_key_down(ws: websocket.WebSocket, action: str, context: str, state: P
     if not in_meeting:
         return
 
-    if action == ACTION_MUTE:
-        ok, _ = toggle_mute()
-        if ok:
-            threading.Thread(target=_sync_mic, args=(ws, context, state), daemon=True).start()
-        else:
-            show_alert(ws, context)
+    match action:
+        case _ if action == ACTION_MUTE:
+            ok, _ = toggle_mute()
+            if ok:
+                threading.Thread(target=_sync_mic, args=(ws, context, state), daemon=True).start()
+            else:
+                show_alert(ws, context)
 
-    elif action == ACTION_CAMERA:
-        ok, _ = toggle_camera()
-        if ok:
-            threading.Thread(target=_sync_camera, args=(ws, context, state), daemon=True).start()
-        else:
-            show_alert(ws, context)
+        case _ if action == ACTION_CAMERA:
+            ok, _ = toggle_camera()
+            if ok:
+                threading.Thread(target=_sync_camera, args=(ws, context, state), daemon=True).start()
+            else:
+                show_alert(ws, context)
 
-    elif action == ACTION_HAND:
-        ok, _ = toggle_hand()
-        if ok:
-            threading.Thread(target=_sync_hand, args=(ws, context, state), daemon=True).start()
-        else:
-            show_alert(ws, context)
+        case _ if action == ACTION_HAND:
+            ok, _ = toggle_hand()
+            if ok:
+                threading.Thread(target=_sync_hand, args=(ws, context, state), daemon=True).start()
+            else:
+                show_alert(ws, context)
 
-    elif action == ACTION_LEAVE:
-        ok, _ = leave_meeting()
-        if not ok:
-            show_alert(ws, context)
+        case _ if action == ACTION_LEAVE:
+            ok, _ = leave_meeting()
+            if not ok:
+                show_alert(ws, context)
 
 
 def handle_will_appear(ws: websocket.WebSocket, action: str, context: str, state: PluginState) -> None:
@@ -199,19 +202,20 @@ def run(port: int, plugin_uuid: str) -> None:
         action = message.get("action", "")
         context = message.get("context", "")
 
-        if event == "keyDown" and action:
-            handle_key_down(ws, action, context, state)
-        elif event == "willAppear" and action:
-            handle_will_appear(ws, action, context, state)
-        elif event == "willDisappear" and action:
-            handle_will_disappear(ws, action, context, state)
-        elif event in ("titleParametersDidChange", "didReceiveSettings") and action:
-            with state.lock:
-                in_meeting = state.in_meeting
-            if in_meeting:
-                set_image(ws, context, _image_for(action, state))
-            else:
-                set_image(ws, context, IDLE_IMAGE.get(action, "idle_mic.png"))
+        match event:
+            case "keyDown" if action:
+                handle_key_down(ws, action, context, state)
+            case "willAppear" if action:
+                handle_will_appear(ws, action, context, state)
+            case "willDisappear" if action:
+                handle_will_disappear(ws, action, context, state)
+            case ("titleParametersDidChange" | "didReceiveSettings") if action:
+                with state.lock:
+                    in_meeting = state.in_meeting
+                if in_meeting:
+                    set_image(ws, context, _image_for(action, state))
+                else:
+                    set_image(ws, context, IDLE_IMAGE.get(action, "idle_mic.png"))
 
 
 def main() -> int:
