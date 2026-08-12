@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.panda.msteams",
+  "Name": "MS Teams Controls",
+  "Version": "0.2.0.0",
+  "Author": "Panda",
+  "Description": "Microsoft Teams meeting controls via macOS Accessibility API",
+  "Icon": "images/pluginIcon",
+  "Category": "Microsoft Teams",
+  "CategoryIcon": "images/pluginIcon",
+  "CodePath": "launch.sh",
+  "CodePathMac": "launch.sh",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.4"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.15"
+    }
+  ],
+  "Actions": [
+    {
+      "Name": "Toggle Microphone",
+      "UUID": "com.panda.msteams.toggle-mic",
+      "Tooltip": "Attiva/disattiva il microfono in Teams",
+      "Icon": "images/idle_mic",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "images/idle_mic",
+          "Title": ""
+        }
+      ],
+      "SupportedInMultiActions": false
+    },
+    {
+      "Name": "Toggle Camera",
+      "UUID": "com.panda.msteams.toggle-camera",
+      "Tooltip": "Attiva/disattiva la telecamera in Teams",
+      "Icon": "images/idle_cam",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "images/idle_cam",
+          "Title": ""
+        }
+      ],
+      "SupportedInMultiActions": false
+    },
+    {
+      "Name": "Toggle Hand",
+      "UUID": "com.panda.msteams.toggle-hand",
+      "Tooltip": "Alza/abbassa la mano in Teams",
+      "Icon": "images/idle_hand",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "images/idle_hand",
+          "Title": ""
+        }
+      ],
+      "SupportedInMultiActions": false
+    },
+    {
+      "Name": "Leave Meeting",
+      "UUID": "com.panda.msteams.leave-meeting",
+      "Tooltip": "Abbandona la riunione Teams",
+      "Icon": "images/idle_leave",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "images/idle_leave",
+          "Title": ""
+        }
+      ],
+      "SupportedInMultiActions": false
+    }
+  ]
+}
