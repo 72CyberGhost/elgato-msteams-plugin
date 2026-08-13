@@ -15,14 +15,12 @@ AX_DESC = "AXDescription"
 AX_VALUE = "AXValue"
 AX_CHILDREN = "AXChildren"
 AX_BUTTON = "AXButton"
-AX_STATIC_TEXT = "AXStaticText"
 AX_PRESS = "AXPress"
 
 MIC_TERMS = ("mute mic", "unmute mic", "microphone", "microfono",
              "disattiva audio", "attiva audio")
 CAM_TERMS = ("turn camera off", "turn camera on")
 HAND_TERMS = ("raise your hand", "lower your hand")
-HAND_RAISED_TEXT = "your hand is raised"
 LEAVE_TERMS = ("leave", "end meeting", "hang up", "esci", "termina riunione",
                "abbandona", "riaggancia")
 
@@ -147,12 +145,13 @@ def meeting_state() -> tuple[bool, bool | None, bool | None, bool | None]:
     else:
         cam_off = None
 
-    # Hand raised state is signalled by an AXStaticText node with specific text
-    hand_raised = any(
-        HAND_RAISED_TEXT in _label_of(el).casefold()
-        for el in _walk(app)
-        if _ax_get(el, AX_ROLE) == AX_STATIC_TEXT
-    )
+    hand_btn = _find_button(app, HAND_TERMS)
+    if hand_btn is not None:
+        _, hand_label = hand_btn
+        # "Lower your hand" → hand is raised; "Raise your hand" → hand is down
+        hand_raised = "lower" in hand_label.casefold()
+    else:
+        hand_raised = False
 
     return True, mic_muted, cam_off, hand_raised
 

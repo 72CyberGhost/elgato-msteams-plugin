@@ -61,7 +61,7 @@ def _image_for(action: str, state: PluginState) -> str:
         case _ if action == ACTION_CAMERA:
             return "cam_off.png" if state.cam_off else "cam_on.png"
         case _ if action == ACTION_HAND:
-            return "hand_raised.png" if state.hand_raised else "hand_down.png"
+            return "hand_down.png" if state.hand_raised else "hand_raised.png"
         case _ if action == ACTION_LEAVE:
             return "leave.png"
         case _:
@@ -89,7 +89,7 @@ def _sync_hand(ws: websocket.WebSocket, context: str, state: PluginState) -> Non
         if hand_raised is not None and hand_raised != old:
             with state.lock:
                 state.hand_raised = hand_raised
-            set_image(ws, context, "hand_raised.png" if hand_raised else "hand_down.png")
+            set_image(ws, context, "hand_down.png" if hand_raised else "hand_raised.png")
             return
         threading.Event().wait(0.1)
 
