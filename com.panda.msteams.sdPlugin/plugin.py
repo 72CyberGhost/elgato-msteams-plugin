@@ -57,10 +57,16 @@ def show_alert(ws: websocket.WebSocket, context: str) -> None:
 def _image_for(action: str, state: PluginState) -> str:
     match action:
         case _ if action == ACTION_MUTE:
+            if state.mic_muted is None:
+                return IDLE_IMAGE[ACTION_MUTE]
             return "mute.png" if state.mic_muted else "unmuted.png"
         case _ if action == ACTION_CAMERA:
+            if state.cam_off is None:
+                return IDLE_IMAGE[ACTION_CAMERA]
             return "cam_off.png" if state.cam_off else "cam_on.png"
         case _ if action == ACTION_HAND:
+            if state.hand_raised is None:
+                return IDLE_IMAGE[ACTION_HAND]
             return "hand_down.png" if state.hand_raised else "hand_raised.png"
         case _ if action == ACTION_LEAVE:
             return "leave.png"
@@ -121,17 +127,19 @@ def poll_meeting(ws: websocket.WebSocket, state: PluginState) -> None:
     in_meeting, mic_muted, cam_off, hand_raised = meeting_state()
     with state.lock:
         meeting_changed = in_meeting != state.in_meeting
-        mic_changed = in_meeting and mic_muted is not None and mic_muted != state.mic_muted
-        cam_changed = in_meeting and cam_off is not None and cam_off != state.cam_off
-        hand_changed = in_meeting and hand_raised is not None and hand_raised != state.hand_raised
+        mic_changed = in_meeting and mic_muted != state.mic_muted
+        cam_changed = in_meeting and cam_off != state.cam_off
+        hand_changed = in_meeting and hand_raised != state.hand_raised
         state.in_meeting = in_meeting
         if in_meeting:
-            if mic_muted is not None:
-                state.mic_muted = mic_muted
-            if cam_off is not None:
-                state.cam_off = cam_off
-            if hand_raised is not None:
-                state.hand_raised = hand_raised
+            # Always sync — including resetting to None in viewer mode
+            state.mic_muted = mic_muted
+            state.cam_off = cam_off
+            state.hand_raised = hand_raised
+        else:
+            state.mic_muted = None
+            state.cam_off = None
+            state.hand_raised = None
     if meeting_changed or mic_changed or cam_changed or hand_changed:
         refresh_all(ws, state, in_meeting)
     t = threading.Timer(POLL_INTERVAL, poll_meeting, args=(ws, state))
@@ -148,6 +156,9 @@ def handle_key_down(ws: websocket.WebSocket, action: str, context: str, state: P
 
     match action:
         case _ if action == ACTION_MUTE:
+            with state.lock:
+                if state.mic_muted is None:
+                    return
             ok, _ = toggle_mute()
             if ok:
                 threading.Thread(target=_sync_mic, args=(ws, context, state), daemon=True).start()
@@ -155,6 +166,9 @@ def handle_key_down(ws: websocket.WebSocket, action: str, context: str, state: P
                 show_alert(ws, context)
 
         case _ if action == ACTION_CAMERA:
+            with state.lock:
+                if state.cam_off is None:
+                    return
             ok, _ = toggle_camera()
             if ok:
                 threading.Thread(target=_sync_camera, args=(ws, context, state), daemon=True).start()
@@ -162,6 +176,9 @@ def handle_key_down(ws: websocket.WebSocket, action: str, context: str, state: P
                 show_alert(ws, context)
 
         case _ if action == ACTION_HAND:
+            with state.lock:
+                if state.hand_raised is None:
+                    return
             ok, _ = toggle_hand()
             if ok:
                 threading.Thread(target=_sync_hand, args=(ws, context, state), daemon=True).start()

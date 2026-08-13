@@ -15,8 +15,9 @@ Stream Deck plugin for macOS that controls Microsoft Teams via the Accessibility
 
 - **No active meeting** — buttons show greyscale icons and do nothing when pressed.
 - **Active meeting** — when a meeting starts, icons automatically sync with the real Teams state (mic muted, camera off, hand raised).
+- **Viewer / live event mode** — when Teams is in viewer mode (only the Leave button is present), mic / camera / hand buttons show greyscale idle icons and are disabled; only Leave is active.
 - **Instant update** — after pressing a button, a background thread polls the AX tree every 100 ms until the state changes (1 s timeout), updating the icon as soon as Teams reflects the action.
-- **Background polling** — every 3 seconds the plugin checks the meeting state and syncs icons for changes made directly in Teams.
+- **Background polling** — every 2 seconds the plugin checks the meeting state and syncs icons for any changes made directly in Teams.
 
 ## Requirements
 
@@ -47,10 +48,10 @@ elgato-msteams-plugin/
         ├── mute.png            # Mic off
         ├── cam_on.png          # Camera on
         ├── cam_off.png         # Camera off
-        ├── hand_down.png       # Hand lowered
-        ├── hand_raised.png     # Hand raised
+        ├── hand_down.png       # Hand lowered (raise hand available)
+        ├── hand_raised.png     # Hand raised (lower hand available)
         ├── leave.png           # Leave meeting
-        ├── idle_mic.png        # Greyscale variant — no active meeting
+        ├── idle_mic.png        # Greyscale variant — no active meeting or unavailable
         ├── idle_cam.png
         ├── idle_hand.png
         └── idle_leave.png
@@ -90,6 +91,6 @@ Use the provided scripts from the project root:
 
 The plugin connects to Stream Deck over WebSocket (native SDK v2 protocol) with no third-party SDK dependency.
 
-**`plugin.py`** drives the WebSocket event loop and holds a thread-safe `PluginState` tracking the current mic, camera, and hand state. A recursive timer runs background polling every 3 seconds; on button press, a dedicated thread detects the AX state change in real time.
+**`plugin.py`** drives the WebSocket event loop and holds a thread-safe `PluginState` tracking the current mic, camera, and hand state. A recursive timer runs background polling every 2 seconds; on button press, a dedicated thread detects the AX state change in real time. The event dispatcher uses Python `match`/`case` for both the Stream Deck event loop and action routing.
 
-**`accessibility.py`** queries the Teams AX tree via `pyobjc-framework-ApplicationServices`. The `meeting_state()` function does a single tree walk and returns `(in_meeting, mic_muted, cam_off, hand_raised)`. The presence of the mic button signals an active meeting; hand-raised state is detected from an `AXStaticText` node with the text `"Your hand is raised."`.
+**`accessibility.py`** queries the Teams AX tree via `pyobjc-framework-ApplicationServices`. The `meeting_state()` function does a single tree walk and returns `(in_meeting, mic_muted, cam_off, hand_raised)`. Meeting detection uses the mic button as primary indicator; if absent, the Leave button is checked to handle viewer/live event mode. Hand-raised state is derived from the button label: `"Lower your hand"` → raised, `"Raise your hand"` → lowered.

@@ -1,2 +1,4 @@
 .DS_Store
 com.panda.msteams.sdPlugin/__pycache__/
+com.panda.msteams.sdPlugin/inspect.txt
+com.panda.msteams.sdPlugin/teams_mute_mvp.py

@@ -126,13 +126,17 @@ def leave_meeting() -> tuple[bool, str]:
 
 
 def meeting_state() -> tuple[bool, bool | None, bool | None, bool | None]:
-    """Restituisce (in_meeting, mic_muted, cam_off, hand_raised)."""
+    """Returns (in_meeting, mic_muted, cam_off, hand_raised)."""
     app = _teams_app()
     if app is None:
         return False, None, None, None
 
     mic_btn = _find_button(app, MIC_TERMS)
     if mic_btn is None:
+        # Viewer/live event mode: only Leave button is present
+        leave_btn = _find_button(app, LEAVE_TERMS)
+        if leave_btn is not None:
+            return True, None, None, None
         return False, None, None, None
 
     _, mic_label = mic_btn
