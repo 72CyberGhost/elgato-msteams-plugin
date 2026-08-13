@@ -48,8 +48,8 @@ elgato-msteams-plugin/
         ├── mute.png            # Mic off
         ├── cam_on.png          # Camera on
         ├── cam_off.png         # Camera off
-        ├── hand_down.png       # Hand lowered (raise hand available)
-        ├── hand_raised.png     # Hand raised (lower hand available)
+        ├── hand_down.png       # Lower hand (shown when hand is raised)
+        ├── hand_raised.png     # Raise hand (shown when hand is lowered)
         ├── leave.png           # Leave meeting
         ├── idle_mic.png        # Greyscale variant — no active meeting or unavailable
         ├── idle_cam.png
@@ -93,4 +93,4 @@ The plugin connects to Stream Deck over WebSocket (native SDK v2 protocol) with 
 
 **`plugin.py`** drives the WebSocket event loop and holds a thread-safe `PluginState` tracking the current mic, camera, and hand state. A recursive timer runs background polling every 2 seconds; on button press, a dedicated thread detects the AX state change in real time. The event dispatcher uses Python `match`/`case` for both the Stream Deck event loop and action routing.
 
-**`accessibility.py`** queries the Teams AX tree via `pyobjc-framework-ApplicationServices`. The `meeting_state()` function does a single tree walk and returns `(in_meeting, mic_muted, cam_off, hand_raised)`. Meeting detection uses the mic button as primary indicator; if absent, the Leave button is checked to handle viewer/live event mode. Hand-raised state is derived from the button label: `"Lower your hand"` → raised, `"Raise your hand"` → lowered.
+**`accessibility.py`** queries the Teams AX tree via `pyobjc-framework-ApplicationServices`. The `meeting_state()` function does a single tree walk and returns `(in_meeting, mic_muted, cam_off, hand_raised)`. Meeting detection uses the mic button as primary indicator; if absent, the Leave button is checked to handle viewer/live event mode. Hand-raised state is derived from the button label: `"Lower your hand"` → raised (`hand_raised=True`), `"Raise your hand"` → lowered (`hand_raised=False`). Icons follow the action-affordance model: `hand_raised.png` (arrow up) is shown when the hand is down, `hand_down.png` (arrow down) when the hand is up.
