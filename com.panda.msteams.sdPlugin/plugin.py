@@ -8,7 +8,24 @@ from pathlib import Path
 
 import websocket
 
-from accessibility import leave_meeting, meeting_state, toggle_camera, toggle_hand, toggle_mute
+from accessibility import leave_meeting, meeting_state, teams_running, toggle_camera, toggle_hand, toggle_mute
+
+
+def _check_accessibility() -> bool:
+    try:
+        from AppKit import NSWorkspace
+        from Foundation import NSURL, NSDictionary
+        from ApplicationServices import AXIsProcessTrustedWithOptions, kAXTrustedCheckOptionPrompt
+        options = NSDictionary.dictionaryWithObject_forKey_(True, kAXTrustedCheckOptionPrompt)
+        if AXIsProcessTrustedWithOptions(options):
+            return True
+        url = NSURL.URLWithString_("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+        NSWorkspace.sharedWorkspace().openURL_(url)
+        print("Accessibility permission missing — opened System Settings.", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"Accessibility check failed: {e}", file=sys.stderr)
+        return False
 
 PLUGIN_UUID = "com.panda.msteams"
 PLUGIN_DIR = Path(__file__).parent
@@ -30,6 +47,7 @@ POLL_INTERVAL = 2.0
 
 class PluginState:
     def __init__(self) -> None:
+        self.teams_open: bool = False
         self.in_meeting: bool = False
         self.mic_muted: bool | None = None
         self.cam_off: bool | None = None
@@ -116,23 +134,28 @@ def _sync_mic(ws: websocket.WebSocket, context: str, state: PluginState) -> None
 def refresh_all(ws: websocket.WebSocket, state: PluginState, in_meeting: bool) -> None:
     with state.lock:
         contexts = dict(state.contexts)
+        teams_open = state.teams_open
     for context, action in contexts.items():
-        if in_meeting:
+        if not teams_open:
+            set_image(ws, context, "pluginIcon_grey.png")
+        elif in_meeting:
             set_image(ws, context, _image_for(action, state))
         else:
             set_image(ws, context, IDLE_IMAGE.get(action, "idle_mic.png"))
 
 
 def poll_meeting(ws: websocket.WebSocket, state: PluginState) -> None:
+    is_open = teams_running()
     in_meeting, mic_muted, cam_off, hand_raised = meeting_state()
     with state.lock:
+        teams_changed = is_open != state.teams_open
         meeting_changed = in_meeting != state.in_meeting
         mic_changed = in_meeting and mic_muted != state.mic_muted
         cam_changed = in_meeting and cam_off != state.cam_off
         hand_changed = in_meeting and hand_raised != state.hand_raised
+        state.teams_open = is_open
         state.in_meeting = in_meeting
         if in_meeting:
-            # Always sync — including resetting to None in viewer mode
             state.mic_muted = mic_muted
             state.cam_off = cam_off
             state.hand_raised = hand_raised
@@ -140,7 +163,7 @@ def poll_meeting(ws: websocket.WebSocket, state: PluginState) -> None:
             state.mic_muted = None
             state.cam_off = None
             state.hand_raised = None
-    if meeting_changed or mic_changed or cam_changed or hand_changed:
+    if teams_changed or meeting_changed or mic_changed or cam_changed or hand_changed:
         refresh_all(ws, state, in_meeting)
     t = threading.Timer(POLL_INTERVAL, poll_meeting, args=(ws, state))
     t.daemon = True
@@ -194,8 +217,11 @@ def handle_key_down(ws: websocket.WebSocket, action: str, context: str, state: P
 def handle_will_appear(ws: websocket.WebSocket, action: str, context: str, state: PluginState) -> None:
     with state.lock:
         state.contexts[context] = action
+        teams_open = state.teams_open
         in_meeting = state.in_meeting
-    if in_meeting:
+    if not teams_open:
+        set_image(ws, context, "pluginIcon_grey.png")
+    elif in_meeting:
         set_image(ws, context, _image_for(action, state))
     else:
         set_image(ws, context, IDLE_IMAGE.get(action, "idle_mic.png"))
@@ -228,14 +254,19 @@ def run(port: int, plugin_uuid: str) -> None:
                 handle_will_disappear(ws, action, context, state)
             case ("titleParametersDidChange" | "didReceiveSettings") if action:
                 with state.lock:
+                    teams_open = state.teams_open
                     in_meeting = state.in_meeting
-                if in_meeting:
+                if not teams_open:
+                    set_image(ws, context, "pluginIcon_grey.png")
+                elif in_meeting:
                     set_image(ws, context, _image_for(action, state))
                 else:
                     set_image(ws, context, IDLE_IMAGE.get(action, "idle_mic.png"))
 
 
 def main() -> int:
+    if not _check_accessibility():
+        return 1
     args = sys.argv[1:]
     try:
         port = int(args[args.index("-port") + 1])

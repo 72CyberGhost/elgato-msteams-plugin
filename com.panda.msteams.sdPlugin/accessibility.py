@@ -7,6 +7,7 @@ from ApplicationServices import (
     AXUIElementCopyAttributeValue,
     AXUIElementCreateApplication,
     AXUIElementPerformAction,
+    AXUIElementSetAttributeValue,
 )
 
 AX_ROLE = "AXRole"
@@ -16,6 +17,7 @@ AX_VALUE = "AXValue"
 AX_CHILDREN = "AXChildren"
 AX_BUTTON = "AXButton"
 AX_PRESS = "AXPress"
+kAXEnhancedUserInterfaceAttribute = "AXEnhancedUserInterface"
 
 MIC_TERMS = ("mute mic", "unmute mic", "microphone", "microfono",
              "disattiva audio", "attiva audio")
@@ -72,11 +74,18 @@ def _find_teams_pid() -> int | None:
     return None
 
 
+def teams_running() -> bool:
+    return _find_teams_pid() is not None
+
+
 def _teams_app() -> Any | None:
     pid = _find_teams_pid()
     if not pid:
         return None
-    return AXUIElementCreateApplication(pid)
+    app = AXUIElementCreateApplication(pid)
+    if app is not None:
+        AXUIElementSetAttributeValue(app, kAXEnhancedUserInterfaceAttribute, True)
+    return app
 
 
 def _find_button(app: Any, terms: tuple[str, ...]) -> tuple[Any, str] | None:
