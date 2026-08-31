@@ -22,7 +22,10 @@ kAXEnhancedUserInterfaceAttribute = "AXEnhancedUserInterface"
 MIC_TERMS = ("mute mic", "unmute mic", "microphone", "microfono",
              "disattiva audio", "attiva audio")
 CAM_TERMS = ("turn camera off", "turn camera on")
-HAND_TERMS = ("raise your hand", "lower your hand")
+# NB: match uses substring casefold. Order matters: longer/more specific first.
+# In New Teams the button label is simply "Raise" / "Lower".
+HAND_TERMS = ("raise your hand", "lower your hand", "raise", "lower",
+              "alza la mano", "abbassa la mano")
 LEAVE_TERMS = ("leave", "end meeting", "hang up", "esci", "termina riunione",
                "abbandona", "riaggancia")
 
@@ -158,13 +161,17 @@ def meeting_state() -> tuple[bool, bool | None, bool | None, bool | None]:
     else:
         cam_off = None
 
-    hand_btn = _find_button(app, HAND_TERMS)
-    if hand_btn is not None:
-        _, hand_label = hand_btn
-        # "Lower your hand" → hand is raised; "Raise your hand" → hand is down
-        hand_raised = "lower" in hand_label.casefold()
-    else:
-        hand_raised = False
+    # Detect hand state from AXStaticText status label (New Teams: "Your hand is raised." / "Your hand is lowered")
+    hand_raised = False
+    for el in _walk(app):
+        if _ax_get(el, AX_ROLE) == "AXStaticText":
+            val = (_ax_get(el, AX_VALUE) or "").casefold()
+            if "hand is raised" in val or "mano alzata" in val:
+                hand_raised = True
+                break
+            if "hand is lowered" in val or "mano abbassata" in val:
+                hand_raised = False
+                break
 
     return True, mic_muted, cam_off, hand_raised
 
