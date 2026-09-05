@@ -42,7 +42,7 @@ IDLE_IMAGE = {
     ACTION_LEAVE:  "idle_leave.png",
 }
 
-POLL_INTERVAL = 0.5
+POLL_INTERVAL = 2.0
 
 
 class PluginState:

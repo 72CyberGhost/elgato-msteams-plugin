@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import time
 from typing import Any, Iterable
 
 from ApplicationServices import (
@@ -63,7 +64,15 @@ def _walk(element: Any, depth: int = 0, limit: int = 35) -> Iterable[Any]:
         yield from _walk(child, depth + 1, limit)
 
 
+_pid_cache: tuple[int | None, float] = (None, 0.0)
+_PID_TTL = 3.0  # seconds before re-running pgrep
+
+
 def _find_teams_pid() -> int | None:
+    global _pid_cache
+    pid, ts = _pid_cache
+    if time.monotonic() - ts < _PID_TTL and pid is not None:
+        return pid
     for name in ("Microsoft Teams", "MSTeams"):
         result = subprocess.run(
             ["pgrep", "-x", name],
@@ -71,9 +80,12 @@ def _find_teams_pid() -> int | None:
         )
         for line in result.stdout.splitlines():
             try:
-                return int(line.strip())
+                found = int(line.strip())
+                _pid_cache = (found, time.monotonic())
+                return found
             except ValueError:
                 pass
+    _pid_cache = (None, time.monotonic())
     return None
 
 
